@@ -1,4 +1,4 @@
-# R-O-COST-project-M-L
+# Capital Cost Prediction for RO Desalination Plants Using Machine Learning
 
 Project Overview
 This project aims to predict the capital cost of Reverse Osmosis (RO) based desalination plants using machine learning. The dataset used consists of 1806 RO plants with a capacity of at least 1000 m³/day, incorporating six input features:
