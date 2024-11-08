@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RO Plant Cost Prediction System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .input-section {
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .results-section {
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .result-card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .chart-container {
+            margin-top: 20px;
+            height: 300px;
+        }
+
+        .info-box {
+            background-color: #e1f5fe;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>RO Plant Cost Prediction System</h1>
+        <p>Predict capital costs for Reverse Osmosis desalination plants</p>
+    </div>
+
+    <div class="container">
+        <div class="content">
+            <div class="input-section">
+                <h2>Input Parameters</h2>
+                <div class="info-box">
+                    Fill in all parameters to get an accurate cost prediction
+                </div>
+
+                <form id="predictionForm">
+                    <div class="form-group">
+                        <label for="location">Plant Location</label>
+                        <select id="location" required>
+                            <option value="">Select Location</option>
+                            <option value="coastal">Coastal</option>
+                            <option value="inland">Inland</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="capacity">Plant Capacity (m³/day)</label>
+                        <input type="number" id="capacity" placeholder="Enter capacity" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="year">Project Award Year</label>
+                        <input type="number" id="year" placeholder="Enter year (e.g., 2024)" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="salinity">Raw Water Salinity (mg/L)</label>
+                        <input type="number" id="salinity" placeholder="Enter salinity level" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="plantType">Plant Type</label>
+                        <select id="plantType" required>
+                            <option value="">Select Plant Type</option>
+                            <option value="seawater">Seawater</option>
+                            <option value="brackish">Brackish Water</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="financing">Project Financing Type</label>
+                        <select id="financing" required>
+                            <option value="">Select Financing Type</option>
+                            <option value="public">Public</option>
+                            <option value="private">Private</option>
+                            <option value="ppp">Public-Private Partnership</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" onclick="predictCost(event)">Predict Cost</button>
+                </form>
+            </div>
+
+            <div class="results-section">
+                <h2>Prediction Results</h2>
+                <div class="result-card">
+                    <h3>Estimated Capital Cost</h3>
+                    <p id="costPrediction">Enter parameters and click predict to see results</p>
+                </div>
+
+                <div class="result-card">
+                    <h3>Cost Breakdown</h3>
+                    <div class="chart-container">
+                        <canvas id="resultChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentChart = null;
+
+        function predictCost(event) {
+            event.preventDefault();
+            
+            // Get input values
+            const capacity = document.getElementById('capacity').value;
+            const salinity = document.getElementById('salinity').value;
+            const location = document.getElementById('location').value;
+            const year = document.getElementById('year').value;
+            const plantType = document.getElementById('plantType').value;
+            const financing = document.getElementById('financing').value;
+
+            // Validate inputs
+            if (!capacity || !salinity || !location || !year || !plantType || !financing) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            // In a real implementation, this would call your ML model API
+            // For demo purposes, we'll generate a random prediction
+            const predictedCost = (capacity * 1000) + (Math.random() * 1000000);
+            
+            // Display the prediction
+            document.getElementById('costPrediction').innerHTML = `
+                <strong>Predicted Cost:</strong> $${predictedCost.toLocaleString('en-US', {maximumFractionDigits: 2})}
+                <br><br>
+                <strong>Input Parameters:</strong><br>
+                Capacity: ${capacity} m³/day<br>
+                Salinity: ${salinity} mg/L<br>
+                Location: ${location}<br>
+                Year: ${year}<br>
+                Plant Type: ${plantType}<br>
+                Financing: ${financing}
+            `;
+
+            // Update chart
+            updateChart(predictedCost);
+        }
+
+        function updateChart(predictedCost) {
+            const ctx = document.getElementById('resultChart').getContext('2d');
+            
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            // Create sample cost breakdown
+            const equipmentCost = predictedCost * 0.4;
+            const laborCost = predictedCost * 0.3;
+            const materialsCost = predictedCost * 0.2;
+            const otherCosts = predictedCost * 0.1;
+
+            currentChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Equipment', 'Labor', 'Materials', 'Other'],
+                    datasets: [{
+                        data: [equipmentCost, laborCost, materialsCost, otherCosts],
+                        backgroundColor: [
+                            '#3498db',
+                            '#2ecc71',
+                            '#f1c40f',
+                            '#e74c3c'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
